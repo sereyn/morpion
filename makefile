@@ -33,4 +33,6 @@ $(OBJ_DIR)/main.o: $(SRC_DIR)/main.c
 
 # dependencies
 
+$(OBJ_DIR)/main.o: $(OBJ_DIR)/game.o
 
+$(OBJ_DIR)/game.o: $(OBJ_DIR)/util.o
