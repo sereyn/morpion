@@ -1,6 +1,6 @@
 CC=gcc
 FLAGS=-W -Wall
-POSTFLAGS=
+POSTFLAGS=-lm
 
 OBJ_DIR=./bin
 SRC_DIR=./src
