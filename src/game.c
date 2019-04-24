@@ -19,8 +19,9 @@ Morpion* newMorpion(){
     Morpion* m = mylloc(sizeof(Morpion));
     int i;
 
-    m->size = 3;
-    m->winCondition = 3;
+    m->size = 10;
+    m->winCondition = 5;
+    m->depthLimit = 3;
 
     m->board = mylloc(m->size * m->size * sizeof(int));
     for(i = 0; i < m->size * m->size; i++){
@@ -98,13 +99,24 @@ void waitPlayer(Morpion* m){
 void play(Morpion* m){
     int* freePos = mylloc(m->size * m->size * sizeof(int));
     int i, nbr = 0;
+    int maxIndex = 0;
+    Tree* t;
     
-    for(i = 0; i < m->size * m->size; i++)
-        if(m->board[i] == EMPTY)
-            freePos[nbr++] = i;
-            
-    m->board[freePos[rand() % nbr]] = COMPUTER;
+    if(m->depthLimit == 0){ /* random mode */
+        for(i = 0; i < m->size * m->size; i++)
+            if(m->board[i] == EMPTY)
+                freePos[nbr++] = i;
+        
+        m->board[freePos[rand() % nbr]] = COMPUTER;
+    }else{ /* minmax mode */
+        t = getCurrentTree(m);
 
+        for(i = 1; i < t->nChildren; i++){
+            if(t->children[i]->value > t->children[maxIndex]->value)
+                maxIndex = i;
+        }
+        m->board[t->children[maxIndex]->boardIndex] = COMPUTER;
+    }
     free(freePos);
 }
 
@@ -157,5 +169,131 @@ int checkWinner(Morpion* m){
         }
     }
     return 0;
+}
+
+int _evalValue(int* board, int size, int toWin){
+    int v = 0;
+    int i;
+    float angle;
+    int current, moveX, moveY;
+    int enemy;
+    int lineScore;
+    int lineLength;
+
+    for(i = 0; i < size * size; i++){
+        if(board[i] != EMPTY){
+            /* enemy setup */
+            if(board[i] == PLAYER)
+                enemy = COMPUTER;
+            else
+                enemy = PLAYER;
+            for(angle = 0; angle < 7 * (M_PI / 4); angle += M_PI / 4){ /* for each angle */
+                current = i;
+                lineScore = 0;
+                lineLength = 1;
+                moveX = _signErr(cos(angle), 0.1);
+                moveY = _signErr(sin(angle), 0.1); 
+                while(lineLength <= toWin){
+                    if(board[current] == PLAYER){
+                        lineScore -= SCORE_FILLED * lineLength * SEQ_FACTOR;
+                    }else if(board[current] == COMPUTER){
+                        lineScore += SCORE_FILLED * lineLength * SEQ_FACTOR;
+                    }
+                    /* check bounds */
+                    if((current % size) + moveX >= size || (current % size) + moveX < 0){ /* x out */
+                        break;
+                    }else if(current + moveX + moveY * size >= size * size || current + moveX + moveY * size < 0){
+                        break;
+                    }
+                    /* change pos */
+                    current += moveX + moveY * size;
+                    if(board[current] == enemy) break;
+                    lineLength++;
+                }
+                if(lineLength >= toWin){
+                    v += lineScore;   
+                }
+            }
+        }
+    }
+    
+    return v;
+}
+
+void debugBoard(int* board, int size){
+    int i, j, hashed;
+    for(i = 0; i < size; i++){
+        for(j = 0; j < size; j++){
+            hashed = i * size + j;
+            printf("%c ", board[hashed]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int boardIndex){
+    Tree* t; 
+    int i, nextPlayer, better;
+    int* tmpBoard; 
+
+
+    t = mylloc(sizeof(Tree));
+
+    t->boardIndex = boardIndex;
+    
+    /* depth check */
+    if(depth <= 0){
+        t->value = _evalValue(board, size, toWin);
+        t->nChildren = 0;
+        t->children = NULL;
+
+        return t;
+    }
+    
+    *t = (Tree){0, mylloc(size*size*sizeof(Tree*)), 0, boardIndex};
+    
+    tmpBoard = mylloc(size*size*sizeof(int));
+
+    /* next player */
+    if(player == COMPUTER){
+        nextPlayer = PLAYER;
+    }else{
+        nextPlayer = COMPUTER;
+    }
+    /* search for empty positions (each child) */
+    for(i = 0; i < size*size; i++){
+        if(board[i] == EMPTY){
+            t->nChildren++;
+            /* copy board for the recursion */
+            memcpy(tmpBoard, board, size*size*sizeof(int));
+            /* apply the hypothetic choice */
+            tmpBoard[i] = player;
+
+            /* recursion */
+            t->children[t->nChildren - 1] = _getTreeRec(tmpBoard, size, depth-1, toWin, nextPlayer, i);
+        }
+    }
+
+    /* minmax */
+    better = 0;
+    for(i = 0; i < t->nChildren; i++){
+        if(player == COMPUTER){ /* max */
+            if(t->children[better]->value < t->children[i]->value)
+                better = i;
+        }else{ /* min */
+            if(t->children[better]->value > t->children[i]->value)
+                better = i;
+        }
+    }
+    
+    if(t->nChildren > 0)
+        t->value = t->children[better]->value;
+
+    return t; 
+}
+
+Tree* getCurrentTree(Morpion* m){
+    return _getTreeRec(m->board, m->size, m->depthLimit, m->winCondition, COMPUTER, -1);
 }
 

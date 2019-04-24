@@ -7,12 +7,10 @@ int main(){
 
     drawMorpion(m);
 
-    while(1){
+    while(!checkWinner(m)){
         waitPlayer(m);
         play(m);
         drawMorpion(m);
-        if(checkWinner(m))
-            break;
     }
 
     exit(EXIT_FAILURE);
