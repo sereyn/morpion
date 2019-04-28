@@ -9,6 +9,8 @@ int main(){
 
     while(!checkWinner(m)){
         waitPlayer(m);
+        drawMorpion(m);
+        checkWinner(m);
         play(m);
         drawMorpion(m);
     }

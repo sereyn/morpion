@@ -19,9 +19,9 @@ Morpion* newMorpion(){
     Morpion* m = mylloc(sizeof(Morpion));
     int i;
 
-    m->size = 10;
-    m->winCondition = 5;
-    m->depthLimit = 3;
+    m->size = 3;
+    m->winCondition = 3;
+    m->depthLimit = 5;
 
     m->board = mylloc(m->size * m->size * sizeof(int));
     for(i = 0; i < m->size * m->size; i++){
@@ -101,21 +101,25 @@ void play(Morpion* m){
     int i, nbr = 0;
     int maxIndex = 0;
     Tree* t;
-    
+
     if(m->depthLimit == 0){ /* random mode */
-        for(i = 0; i < m->size * m->size; i++)
-            if(m->board[i] == EMPTY)
+        for(i = 0; i < m->size * m->size; i++){
+            if(m->board[i] == EMPTY){
                 freePos[nbr++] = i;
-        
-        m->board[freePos[rand() % nbr]] = COMPUTER;
+            }
+        }
+        if(nbr != 0)
+            m->board[freePos[rand() % nbr]] = COMPUTER;
     }else{ /* minmax mode */
+        printf("MinMax\n");
         t = getCurrentTree(m);
 
         for(i = 1; i < t->nChildren; i++){
             if(t->children[i]->value > t->children[maxIndex]->value)
                 maxIndex = i;
         }
-        m->board[t->children[maxIndex]->boardIndex] = COMPUTER;
+        if(t->nChildren != 0)
+            m->board[t->children[maxIndex]->boardIndex] = COMPUTER;
     }
     free(freePos);
 }
@@ -153,6 +157,16 @@ int checkSerie(Morpion* m, int p){
     return 0;
 }
 
+int _isFull(Morpion* m){
+    int i;
+    int full = 1;
+    for(i = 0; i < m->size * m->size; i++){
+        if(m->board[i] == EMPTY)
+            full = 0;
+    }
+    return full;
+}
+
 int checkWinner(Morpion* m){
     int i;
     int winner;
@@ -167,6 +181,10 @@ int checkWinner(Morpion* m){
             return COMPUTER;
             break;
         }
+    }
+    if(_isFull(m)){
+        printf("Draw\n");
+        return EMPTY;
     }
     return 0;
 }
@@ -274,6 +292,7 @@ Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int bo
             t->children[t->nChildren - 1] = _getTreeRec(tmpBoard, size, depth-1, toWin, nextPlayer, i);
         }
     }
+
 
     /* minmax */
     better = 0;
