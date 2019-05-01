@@ -14,7 +14,7 @@
 
 #define SCORE_EMPTY 1
 #define SCORE_FILLED 4
-#define SEQ_FACTOR 1
+#define SEQ_FACTOR 2
 
 typedef struct Tree{
     int value;

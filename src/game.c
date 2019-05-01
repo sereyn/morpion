@@ -19,14 +19,15 @@ Morpion* newMorpion(){
     Morpion* m = mylloc(sizeof(Morpion));
     int i;
 
-    m->size = 3;
-    m->winCondition = 3;
-    m->depthLimit = 5;
+    m->size = 9;
+    m->winCondition = 5;
+    m->depthLimit = 2;
 
     m->board = mylloc(m->size * m->size * sizeof(int));
     for(i = 0; i < m->size * m->size; i++){
         m->board[i] = EMPTY;
     }
+    m->board[(m->size * m->size)/2] = COMPUTER;
 
     srand(time(NULL));
 
@@ -74,24 +75,41 @@ void drawMorpion(Morpion* m){
     printf("\n");
 }
 
+int _isGood(int* board, int size, int a, int b){
+    int good = 0;
+    int hashed = a * size + b - 'a';
+
+    /* check bounds */
+    if(!(a < 0 || a >= size || b - 'a' < 0 || b - 'a' >= size)){
+        /* already occupated */
+        if(board[hashed] != EMPTY){
+            return 0;
+        }
+
+        /* look around */
+        if(b < 'a' + size - 1) good |= board[hashed + 1] != EMPTY;
+        if(b < 'a' + size - 1 && a > 0) good |= board[hashed + 1 - size] != EMPTY;
+        if(a > 0) good |= board[hashed - size] != EMPTY;
+        if(a > 0 && b > 'a') good |= board[hashed - 1 - size] != EMPTY;
+        if(b > 'a') good |= board[hashed - 1] != EMPTY;
+        if(a < size - 1 && b > 'a') good |= board[hashed - 1 + size] != EMPTY;
+        if(a < size - 1) good |= board[hashed + size] != EMPTY;
+        if(a < size - 1 && b < 'a' + size - 1) good |= board[hashed + 1 + size] != EMPTY;
+    }
+    return good;
+}
+
 void waitPlayer(Morpion* m){
     int a; char b; int hashed;
     int good = 0;
     
     while(!good){ 
         scanf("%d%c", &a, &b);
-        /* check bounds */
-        if(!(a < 0 || a >= m->size || b - 'a' < 0 || b - 'a' >= m->size)){
-            /* check if empty (good) */
-            hashed = a * m->size + b - 'a';
-            if(m->board[hashed] == EMPTY){
-                m->board[hashed] =  PLAYER;    
-                good = 1;
-            }else{
-                printf("already occupated\n");
-            }
-        }else{
-            printf("out of bound\n");
+        hashed = a * m->size + b - 'a';
+
+        if(_isGood(m->board, m->size, a, b)){
+            good = 1;
+            m->board[hashed] = PLAYER;
         }
     }
 }
@@ -99,19 +117,21 @@ void waitPlayer(Morpion* m){
 void play(Morpion* m){
     int* freePos = mylloc(m->size * m->size * sizeof(int));
     int i, nbr = 0;
+    int a, b;
     int maxIndex = 0;
     Tree* t;
 
     if(m->depthLimit == 0){ /* random mode */
-        for(i = 0; i < m->size * m->size; i++){
-            if(m->board[i] == EMPTY){
-                freePos[nbr++] = i;
+        for(a = 0; a < m->size; a++){
+            for(b = 'a'; b < 'a' + m->size; b++){
+                if(_isGood(m->board, m->size, a, b)){
+                    freePos[nbr++] = a * m->size + b - 'a';
+                }
             }
         }
         if(nbr != 0)
             m->board[freePos[rand() % nbr]] = COMPUTER;
     }else{ /* minmax mode */
-        printf("MinMax\n");
         t = getCurrentTree(m);
 
         for(i = 1; i < t->nChildren; i++){
@@ -173,20 +193,17 @@ int checkWinner(Morpion* m){
     for(i = 0; i < m->size * m->size; i++){
         winner = checkSerie(m, i);
         if(winner == PLAYER){
-            printf("You win!\n");
             return PLAYER;
             break;
         }else if(winner == COMPUTER){
-            printf("Computer win!\n");
             return COMPUTER;
             break;
         }
     }
     if(_isFull(m)){
-        printf("Draw\n");
         return EMPTY;
     }
-    return 0;
+    return EMPTY;
 }
 
 int _evalValue(int* board, int size, int toWin){
@@ -253,6 +270,7 @@ void debugBoard(int* board, int size){
 Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int boardIndex){
     Tree* t; 
     int i, nextPlayer, better;
+    int a, b;
     int* tmpBoard; 
 
 
@@ -279,17 +297,21 @@ Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int bo
     }else{
         nextPlayer = COMPUTER;
     }
-    /* search for empty positions (each child) */
-    for(i = 0; i < size*size; i++){
-        if(board[i] == EMPTY){
-            t->nChildren++;
-            /* copy board for the recursion */
-            memcpy(tmpBoard, board, size*size*sizeof(int));
-            /* apply the hypothetic choice */
-            tmpBoard[i] = player;
+    /* search for playable positions (each child) */
+    for(a = 0; a < size; a++){
+        for(b = 'a'; b < 'a' + size; b++){
+            if(_isGood(board, size, a, b)){
+                t->nChildren++;
+                /* copy board for the recursion */
+                memcpy(tmpBoard, board, size*size*sizeof(int));
+                /* apply the hypothetic choice */
+                tmpBoard[a * size + b - 'a'] = player;
 
-            /* recursion */
-            t->children[t->nChildren - 1] = _getTreeRec(tmpBoard, size, depth-1, toWin, nextPlayer, i);
+                //debugBoard(tmpBoard, size);
+
+                /* recursion */
+                t->children[t->nChildren - 1] = _getTreeRec(tmpBoard, size, depth-1, toWin, nextPlayer, a * size + b - 'a');
+            }
         }
     }
 
