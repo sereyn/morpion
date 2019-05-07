@@ -5,16 +5,21 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <limits.h>
 
 #include "util.h"
+
+#ifndef M_PI
+#define M_PI (3.14159265358979323846)
+#endif
 
 #define EMPTY '.'
 #define PLAYER 'X'
 #define COMPUTER 'O'
 
 #define SCORE_EMPTY 1
-#define SCORE_FILLED 4
-#define SEQ_FACTOR 2
+#define SCORE_FILLED 7
+#define SEQ_FACTOR 4
 
 typedef struct Tree{
     int value;

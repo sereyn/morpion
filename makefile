@@ -1,5 +1,5 @@
 CC=gcc
-FLAGS=-W -Wall
+FLAGS=-W -Wall -ansi
 POSTFLAGS=-lm
 
 OBJ_DIR=./bin

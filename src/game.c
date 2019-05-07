@@ -21,7 +21,7 @@ Morpion* newMorpion(){
 
     m->size = 9;
     m->winCondition = 5;
-    m->depthLimit = 2;
+    m->depthLimit = 3;
 
     m->board = mylloc(m->size * m->size * sizeof(int));
     for(i = 0; i < m->size * m->size; i++){
@@ -230,8 +230,10 @@ int _evalValue(int* board, int size, int toWin){
                 moveY = _signErr(sin(angle), 0.1); 
                 while(lineLength <= toWin){
                     if(board[current] == PLAYER){
+                        if(lineLength >= toWin) return INT_MIN;
                         lineScore -= SCORE_FILLED * lineLength * SEQ_FACTOR;
                     }else if(board[current] == COMPUTER){
+                        if(lineLength >= toWin) return INT_MAX;
                         lineScore += SCORE_FILLED * lineLength * SEQ_FACTOR;
                     }
                     /* check bounds */
@@ -307,7 +309,7 @@ Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int bo
                 /* apply the hypothetic choice */
                 tmpBoard[a * size + b - 'a'] = player;
 
-                //debugBoard(tmpBoard, size);
+                /* debugBoard(tmpBoard, size); */
 
                 /* recursion */
                 t->children[t->nChildren - 1] = _getTreeRec(tmpBoard, size, depth-1, toWin, nextPlayer, a * size + b - 'a');
