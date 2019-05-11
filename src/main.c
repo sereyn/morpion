@@ -29,6 +29,9 @@ int main(){
 
     printf("%d\n", winner);
 
+    free(m->board);
+    free(m);
+
     exit(EXIT_FAILURE);
 }
 

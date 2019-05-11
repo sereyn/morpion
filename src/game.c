@@ -114,6 +114,15 @@ void waitPlayer(Morpion* m){
     }
 }
 
+void _freeTree(Tree** t){
+    int i;
+    for(i = 0; i < (*t)->nChildren; i++){
+        _freeTree(&((*t)->children[i]));
+    }
+    free((*t)->children);
+    free(*t);
+}
+
 void play(Morpion* m){
     int* freePos = mylloc(m->size * m->size * sizeof(int));
     int i, nbr = 0;
@@ -140,6 +149,7 @@ void play(Morpion* m){
         }
         if(t->nChildren != 0)
             m->board[t->children[maxIndex]->boardIndex] = COMPUTER;
+        _freeTree(&t);
     }
     free(freePos);
 }
@@ -317,6 +327,7 @@ Tree* _getTreeRec(int* board, int size, int depth, int toWin, int player, int bo
         }
     }
 
+    free(tmpBoard);
 
     /* minmax */
     better = 0;
