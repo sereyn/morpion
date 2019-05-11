@@ -17,7 +17,6 @@
 #define PLAYER 'X'
 #define COMPUTER 'O'
 
-#define SCORE_EMPTY 1
 #define SCORE_FILLED 7
 #define SEQ_FACTOR 4
 
